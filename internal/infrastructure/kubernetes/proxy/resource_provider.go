@@ -20,7 +20,6 @@ import (
 	"github.com/envoyproxy/gateway/internal/gatewayapi"
 	"github.com/envoyproxy/gateway/internal/infrastructure/kubernetes/resource"
 	"github.com/envoyproxy/gateway/internal/ir"
-	"github.com/envoyproxy/gateway/internal/xds/bootstrap"
 )
 
 type ResourceRender struct {
@@ -186,9 +185,9 @@ func (r *ResourceRender) Deployment() (*appsv1.Deployment, error) {
 		if annotations == nil {
 			annotations = make(map[string]string, 2)
 		}
-		annotations["prometheus.io/path"] = "/stats/prometheus" // TODO: make this configurable
+		annotations["prometheus.io/path"] = r.infra.Config.Spec.Telemetry.Metrics.Prometheus.Path
 		annotations["prometheus.io/scrape"] = "true"
-		annotations["prometheus.io/port"] = strconv.Itoa(bootstrap.EnvoyReadinessPort)
+		annotations["prometheus.io/port"] = strconv.Itoa(int(r.infra.Config.Spec.Telemetry.Metrics.Prometheus.Port))
 	}
 
 	deployment := &appsv1.Deployment{

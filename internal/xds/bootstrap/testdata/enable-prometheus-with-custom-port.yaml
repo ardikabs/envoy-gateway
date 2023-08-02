@@ -3,11 +3,11 @@ admin:
   - name: envoy.access_loggers.file
     typed_config:
       "@type": type.googleapis.com/envoy.extensions.access_loggers.file.v3.FileAccessLog
-      path: {{ .AdminServer.AccessLogPath }}
+      path: /dev/null
   address:
     socket_address:
-      address: {{ .AdminServer.Address }}
-      port_value: {{ .AdminServer.Port }}
+      address: 127.0.0.1
+      port_value: 19000
 dynamic_resources:
   ads_config:
     api_type: DELTA_GRPC
@@ -22,24 +22,13 @@ dynamic_resources:
   cds_config:
     ads: {}
     resource_api_version: V3
-{{- if .OtelMetricSinks }}
-stats_sinks:
-{{- range $idx, $sink := .OtelMetricSinks }}
-- name: "envoy.stat_sinks.open_telemetry"
-  typed_config:
-    "@type": type.googleapis.com/envoy.extensions.stat_sinks.open_telemetry.v3.SinkConfig
-    grpc_service:
-      envoy_grpc:
-        cluster_name: otel_metric_sink_{{ $idx }}
-{{- end }}
-{{- end }}
 static_resources:
   listeners:
-  - name: envoy-gateway-proxy-ready-{{ .ReadyServer.Address }}-{{ .ReadyServer.Port }}
+  - name: envoy-gateway-proxy-ready-0.0.0.0-19001
     address:
       socket_address:
-        address: {{ .ReadyServer.Address }}
-        port_value: {{ .ReadyServer.Port }}
+        address: 0.0.0.0
+        port_value: 19001
         protocol: TCP
     filter_chains:
     - filters:
@@ -49,20 +38,16 @@ static_resources:
           stat_prefix: eg-ready-http
           route_config:
             name: local_route
-            {{- if .Prometheus.Enabled }}
             virtual_hosts:
             - name: prometheus_stats
               domains:
               - "*"
               routes:
               - match:
-                  prefix: {{ .Prometheus.Path }}
+                  prefix: /metrics
                 route:
                   cluster: prometheus_stats
-                  {{- if ne .Prometheus.Path "/stats/prometheus" }}
                   prefix_rewrite: /stats/prometheus
-                  {{- end }}
-            {{- end }}
           http_filters:
           - name: envoy.filters.http.health_check
             typed_config:
@@ -71,16 +56,15 @@ static_resources:
               headers:
               - name: ":path"
                 string_match:
-                  exact: {{ .ReadyServer.ReadinessPath }}
+                  exact: /ready
           - name: envoy.filters.http.router
             typed_config:
               "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
-{{- if and .Prometheus.Enabled (ne .Prometheus.Port 19001 )}}
   - name: envoy-gateway-proxy-prometheus
     address:
       socket_address:
-        address: {{ .ReadyServer.Address }}
-        port_value: {{ .Prometheus.Port }}
+        address: 0.0.0.0
+        port_value: 19002
         protocol: TCP
     filter_chains:
     - filters:
@@ -96,19 +80,15 @@ static_resources:
               - "*"
               routes:
               - match:
-                  prefix: {{ .Prometheus.Path }}
+                  prefix: /metrics
                 route:
                   cluster: prometheus_stats
-                  {{- if ne .Prometheus.Path "/stats/prometheus" }}
                   prefix_rewrite: /stats/prometheus
-                  {{- end }}
           http_filters:
           - name: envoy.filters.http.router
             typed_config:
               "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
-{{- end }}
   clusters:
-  {{- if .Prometheus.Enabled }}
   - name: prometheus_stats
     connect_timeout: 0.250s
     type: STATIC
@@ -120,29 +100,8 @@ static_resources:
         - endpoint:
             address:
               socket_address:
-                address: {{ .AdminServer.Address }}
-                port_value: {{ .AdminServer.Port }}
-  {{- end }}
-  {{- range $idx, $sink := .OtelMetricSinks }}
-  - name: otel_metric_sink_{{ $idx }}
-    connect_timeout: 0.250s
-    type: STRICT_DNS
-    typed_extension_protocol_options:
-      envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
-        "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions"
-        explicit_http_config:
-          http2_protocol_options: {}
-    lb_policy: ROUND_ROBIN
-    load_assignment:
-      cluster_name: otel_metric_sink_{{ $idx }}
-      endpoints:
-      - lb_endpoints:
-        - endpoint:
-            address:
-              socket_address:
-                address: {{ $sink.Address }}
-                port_value: {{ $sink.Port }}
-  {{- end }}
+                address: 127.0.0.1
+                port_value: 19000
   - connect_timeout: 10s
     load_assignment:
       cluster_name: xds_cluster
@@ -151,8 +110,8 @@ static_resources:
         - endpoint:
             address:
               socket_address:
-                address: {{ .XdsServer.Address }}
-                port_value: {{ .XdsServer.Port }}
+                address: envoy-gateway
+                port_value: 18000
     typed_extension_protocol_options:
       envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
         "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions"

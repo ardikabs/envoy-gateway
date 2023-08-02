@@ -59,8 +59,9 @@ type bootstrapParameters struct {
 	AdminServer adminServerParameters
 	// ReadyServer defines the configuration for health check ready listener
 	ReadyServer readyServerParameters
-	// EnablePrometheus defines whether to enable metrics endpoint for prometheus.
-	EnablePrometheus bool
+
+	// Prometheus defines whether to enable metrics endpoint for prometheus.
+	Prometheus prometheusParameters
 	// OtelMetricSinks defines the configuration of the OpenTelemetry sinks.
 	OtelMetricSinks []metricSink
 }
@@ -97,6 +98,12 @@ type readyServerParameters struct {
 	ReadinessPath string
 }
 
+type prometheusParameters struct {
+	Enabled bool
+	Path    string
+	Port    int32
+}
+
 // render the stringified bootstrap config in yaml format.
 func (b *bootstrapConfig) render() error {
 	buf := new(strings.Builder)
@@ -111,13 +118,15 @@ func (b *bootstrapConfig) render() error {
 // GetRenderedBootstrapConfig renders the bootstrap YAML string
 func GetRenderedBootstrapConfig(proxyMetrics *egcfgv1a1.ProxyMetrics) (string, error) {
 	var (
-		enablePrometheus bool
+		prometheusParams prometheusParameters
 		metricSinks      []metricSink
 	)
 
 	if proxyMetrics != nil {
-		if proxyMetrics.Prometheus != nil {
-			enablePrometheus = true
+		if prom := proxyMetrics.Prometheus; prom != nil {
+			prometheusParams.Enabled = prom.Enabled
+			prometheusParams.Path = prom.Path
+			prometheusParams.Port = prom.Port
 		}
 
 		addresses := sets.NewString()
@@ -156,8 +165,8 @@ func GetRenderedBootstrapConfig(proxyMetrics *egcfgv1a1.ProxyMetrics) (string, e
 				Port:          EnvoyReadinessPort,
 				ReadinessPath: EnvoyReadinessPath,
 			},
-			EnablePrometheus: enablePrometheus,
-			OtelMetricSinks:  metricSinks,
+			Prometheus:      prometheusParams,
+			OtelMetricSinks: metricSinks,
 		},
 	}
 

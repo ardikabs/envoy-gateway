@@ -258,7 +258,24 @@ func TestDeployment(t *testing.T) {
 			infra:    newTestInfra(),
 			telemetry: &egcfgv1a1.ProxyTelemetry{
 				Metrics: &egcfgv1a1.ProxyMetrics{
-					Prometheus: &egcfgv1a1.PrometheusProvider{},
+					Prometheus: &egcfgv1a1.PrometheusProvider{
+						Enabled: true,
+						Path:    "/stats/prometheus",
+						Port:    19001,
+					},
+				},
+			},
+		},
+		{
+			caseName: "enable-prometheus-with-custom-config",
+			infra:    newTestInfra(),
+			telemetry: &egcfgv1a1.ProxyTelemetry{
+				Metrics: &egcfgv1a1.ProxyMetrics{
+					Prometheus: &egcfgv1a1.PrometheusProvider{
+						Enabled: true,
+						Path:    "/metrics",
+						Port:    19001,
+					},
 				},
 			},
 		},

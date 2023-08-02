@@ -44,4 +44,22 @@ type OpenTelemetrySink struct {
 }
 
 type PrometheusProvider struct {
+	// Enabled enables Envoy proxy expose Prometheus stats format
+	//
+	// +optional
+	Enabled bool
+
+	// Path defines the path the prometheus metrics endpoint is exposed on.
+	//
+	// +optional
+	// +kubebuilder:default=/stats/prometheus
+	Path string
+
+	// Port defines the port the prometheus metrics endpoint is exposed on.
+	//
+	// +optional
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=65535
+	// +kubebuilder:default=19001
+	Port int32
 }

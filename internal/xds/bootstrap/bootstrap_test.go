@@ -27,7 +27,31 @@ func TestGetRenderedBootstrapConfig(t *testing.T) {
 		{
 			name: "enable-prometheus",
 			proxyMetrics: &egcfgv1a1.ProxyMetrics{
-				Prometheus: &egcfgv1a1.PrometheusProvider{},
+				Prometheus: &egcfgv1a1.PrometheusProvider{
+					Enabled: true,
+					Path:    "/stats/prometheus",
+					Port:    19001,
+				},
+			},
+		},
+		{
+			name: "enable-prometheus-with-custom-path",
+			proxyMetrics: &egcfgv1a1.ProxyMetrics{
+				Prometheus: &egcfgv1a1.PrometheusProvider{
+					Enabled: true,
+					Path:    "/metrics",
+					Port:    19001,
+				},
+			},
+		},
+		{
+			name: "enable-prometheus-with-custom-port",
+			proxyMetrics: &egcfgv1a1.ProxyMetrics{
+				Prometheus: &egcfgv1a1.PrometheusProvider{
+					Enabled: true,
+					Path:    "/metrics",
+					Port:    19002,
+				},
 			},
 		},
 		{
